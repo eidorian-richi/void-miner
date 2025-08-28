@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Void Miner</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+        
+        #game-container {
+            text-align: center;
+        }
+        
+        #game-canvas {
+            border: 1px solid #333;
+            background: #000;
+        }
+        
+        .loading {
+            color: #00ff00;
+            font-size: 18px;
+            margin: 20px;
+        }
+        
+        .game-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="loading">Loading Void Miner...</div>
+        <div class="game-info">Use touch controls to direct your ship</div>
+    </div>
+
+    <!-- Phaser.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+    
+    <!-- Game modules -->
+    <script src="src/config.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>
