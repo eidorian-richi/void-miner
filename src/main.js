@@ -31,6 +31,7 @@ const config = {
 let ship;
 let cursors;
 let graphics;
+let asteroids = []; // Array to hold all asteroids
 
 // Auto-stabilization system
 let autoStabilizing = false;
@@ -70,11 +71,19 @@ function create() {
     ship.setDrag(GameConfig.SHIP.FRICTION * 100); // Convert to Phaser drag value
     ship.setCollideWorldBounds(false); // Allow wrapping around edges
     
+    // Check if Asteroid class exists
+    if (typeof Asteroid !== 'undefined') {
+        console.log('Asteroid class found, generating asteroids...');
+        generateAsteroids();
+    } else {
+        console.error('Asteroid class not found! Check if Asteroid.js is loaded.');
+    }
+    
     // Set up keyboard controls (for desktop testing)
     cursors = this.input.keyboard.createCursorKeys();
     
     // Add text for debugging
-    this.add.text(10, 10, 'Void Miner v0.1', {
+    this.add.text(10, 10, 'Void Miner v0.2', {
         fontFamily: 'Courier New',
         fontSize: '16px',
         color: GameConfig.UI.TEXT_COLOR
@@ -104,14 +113,22 @@ function update() {
     // Handle screen wrapping
     wrapPosition();
     
-    // Redraw ship (clears previous frame)
+    // Clear graphics for this frame
+    graphics.clear();
+    
+    // Update and draw all asteroids
+    for (let asteroid of asteroids) {
+        asteroid.update(graphics);
+    }
+    
+    // Draw ship (after asteroids so it appears on top)
     drawShip();
     
     // Update debug text
     if (game.scene.scenes[0].debugText) {
         const currentSpeed = Math.sqrt(ship.body.velocity.x ** 2 + ship.body.velocity.y ** 2);
         game.scene.scenes[0].debugText.setText(
-            `Speed: ${currentSpeed.toFixed(1)} | Stabilizing: ${autoStabilizing} | Timer: ${(stabilizationTimer/1000).toFixed(1)}s`
+            `Speed: ${currentSpeed.toFixed(1)} | Stabilizing: ${autoStabilizing} | Timer: ${(stabilizationTimer/1000).toFixed(1)}s | Asteroids: ${asteroids.length}`
         );
     }
 }
@@ -149,17 +166,15 @@ function handleInput() {
 }
 
 function drawShip() {
-    // Clear previous graphics
-    graphics.clear();
+    // Ship color - bright green for visibility
+    graphics.lineStyle(3, 0x00FF00); // Thick green line for ship
     
     const size = GameConfig.SHIP.SIZE;
     const x = ship.x;
     const y = ship.y;
     const rotation = ship.rotation;
     
-    // Draw ship as a simple triangle - FIXED to match physics coordinate system
-    graphics.lineStyle(3, 0x00FF00); // Thick green line for ship
-    
+    // Calculate triangle points - classic Asteroids style
     // In Phaser: rotation 0 = pointing right, rotation increases clockwise
     // So we need to draw the triangle pointing in the direction of rotation
     
@@ -311,4 +326,65 @@ function handleStabilization() {
         autoStabilizing = false;
         ship.setAcceleration(0, 0);
     }
+}
+
+function generateAsteroids() {
+    const scene = game.scene.scenes[0]; // Get current scene
+    
+    // Clear existing asteroids
+    asteroids.forEach(asteroid => asteroid.destroy());
+    asteroids = [];
+    
+    // Generate asteroids based on config
+    for (let i = 0; i < GameConfig.WORLD.INITIAL_ASTEROIDS; i++) {
+        // Choose random position away from ship
+        let x, y;
+        let tooClose = true;
+        let attempts = 0;
+        
+        while (tooClose && attempts < 50) {
+            x = Phaser.Math.Between(0, GameConfig.GAME_WIDTH);
+            y = Phaser.Math.Between(0, GameConfig.GAME_HEIGHT);
+            
+            // Check distance from ship
+            const distance = Phaser.Math.Distance.Between(
+                x, y, 
+                GameConfig.GAME_WIDTH / 2, 
+                GameConfig.GAME_HEIGHT / 2
+            );
+            
+            if (distance > GameConfig.WORLD.ASTEROID_SPAWN_DISTANCE) {
+                tooClose = false;
+            }
+            attempts++;
+        }
+        
+        // Choose random size
+        const size = Phaser.Math.Between(GameConfig.ASTEROIDS.MIN_SIZE, GameConfig.ASTEROIDS.MAX_SIZE);
+        
+        // Choose material based on rarity
+        const materialType = chooseMaterialType();
+        
+        // Create asteroid
+        const asteroid = new Asteroid(scene, x, y, size, materialType);
+        asteroids.push(asteroid);
+    }
+    
+    console.log(`Generated ${asteroids.length} asteroids`);
+}
+
+function chooseMaterialType() {
+    const random = Math.random();
+    let cumulativeChance = 0;
+    
+    // Check each material type based on rarity
+    for (let [materialName, materialData] of Object.entries(GameConfig.MATERIALS)) {
+        cumulativeChance += materialData.rarity;
+        if (random <= cumulativeChance) {
+            return materialName;
+        }
+    }
+    
+    // Fallback to iron if something goes wrong
+    return 'IRON';
 }
